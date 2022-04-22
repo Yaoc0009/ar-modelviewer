@@ -2,23 +2,25 @@ import open3d as o3d
 import numpy as np
 import os
 
-filename = 'assets/gargoyle.txt'
+filename = 'assets/bunny.txt'
 with open(filename, 'r') as f:
     lines = f.readlines()
 
 v = []
-v_normal = []
 f = []
 
 for line in lines:
     line_split = line.strip().split()
     if line_split[0] == 'Vertex':
         v.append([float(line_split[2]), float(line_split[3]), float(line_split[4])])
-        v_normal.append([float(line_split[5].split('(')[-1]), float(line_split[6]), float(line_split[7].split(')')[0])])
     elif line_split[0] == 'Face':
         f.append([int(line_split[2]), int(line_split[3]), int(line_split[4])])
 
-v = np.array(v) # divide by 100000 for gargoyle
+v = np.array(v)
+v_min = np.min(v)
+v_max = np.max(v)
+v_scale = v_max - v_min
+v = (v - v_min) / v_scale
 f = np.array(f) - 1
 e = []
 for face in f:
@@ -44,12 +46,27 @@ mesh.paint_uniform_color([1, 0.706, 0])
 mesh.compute_vertex_normals()
 he_mesh = o3d.geometry.HalfEdgeTriangleMesh.create_from_triangle_mesh(mesh)
 
-line_set = o3d.geometry.LineSet(
+mesh_lineset = o3d.geometry.LineSet(
     points=o3d.utility.Vector3dVector(v),
     lines=o3d.utility.Vector2iVector(e)
 )
-line_set.paint_uniform_color([0, 0, 0])
-o3d.visualization.draw_geometries([he_mesh, line_set])
+mesh_lineset.paint_uniform_color([0, 0, 0])
+
+mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(
+    size=1, origin=[0, 0, 0])
+
+base_coord = [[x, 0, y] for x in range(-10, 11, 1) for y in range(-10, 11, 1) if x in [-10, 10] or y in [-10, 10]]
+base_edges = [[i, j] for i in range(len(base_coord)) for j in range(i+1, len(base_coord)) if base_coord[i][0] == base_coord[j][0] or base_coord[i][2] == base_coord[j][2]]
+base_coord = np.array(base_coord)/5
+base_edges = np.array(base_edges)
+
+base_mesh = o3d.geometry.LineSet(
+    points=o3d.utility.Vector3dVector(base_coord),
+    lines=o3d.utility.Vector2iVector(base_edges)
+)
+mesh_lineset.paint_uniform_color([0, 0, 0])
+
+o3d.visualization.draw_geometries([he_mesh, mesh_lineset, mesh_frame, base_mesh])
 
 output_filename = filename.replace('.txt', '.glb')
 if not os.path.exists(output_filename):
