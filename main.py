@@ -2,7 +2,7 @@ import open3d as o3d
 import numpy as np
 import os
 
-filename = 'assets/bunny.txt'
+filename = 'assets/gargoyle.txt'
 with open(filename, 'r') as f:
     lines = f.readlines()
 
@@ -56,17 +56,29 @@ mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(
     size=1, origin=[0, 0, 0])
 
 base_coord = [[x, 0, y] for x in range(-10, 11, 1) for y in range(-10, 11, 1) if x in [-10, 10] or y in [-10, 10]]
+base_end = [i for i in range(len(base_coord)) if base_coord[i][0] in [-10, 10] and base_coord[i][2] in [-10, 10]]
+base_face = [
+    [base_end[0], base_end[1], base_end[2]],
+    [base_end[2], base_end[1], base_end[3]],
+]
 base_edges = [[i, j] for i in range(len(base_coord)) for j in range(i+1, len(base_coord)) if base_coord[i][0] == base_coord[j][0] or base_coord[i][2] == base_coord[j][2]]
 base_coord = np.array(base_coord)/5
+base_face = np.array(base_face)
 base_edges = np.array(base_edges)
 
-base_mesh = o3d.geometry.LineSet(
+base = o3d.geometry.TriangleMesh(
+    vertices=o3d.utility.Vector3dVector(base_coord),
+    triangles=o3d.utility.Vector3iVector(base_face)
+)
+base.paint_uniform_color([0.5, 0.5, 0.5])
+
+base_lineset = o3d.geometry.LineSet(
     points=o3d.utility.Vector3dVector(base_coord),
     lines=o3d.utility.Vector2iVector(base_edges)
 )
-mesh_lineset.paint_uniform_color([0, 0, 0])
+base_lineset.paint_uniform_color([0, 0, 0])
 
-o3d.visualization.draw_geometries([he_mesh, mesh_lineset, mesh_frame, base_mesh])
+o3d.visualization.draw_geometries([he_mesh, mesh_lineset, mesh_frame, base, base_lineset])
 
 output_filename = filename.replace('.txt', '.glb')
 if not os.path.exists(output_filename):
